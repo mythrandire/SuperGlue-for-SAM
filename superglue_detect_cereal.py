@@ -7,6 +7,7 @@ import torch
 
 from pathlib import Path
 import random
+import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import pandas as pd
 
@@ -20,6 +21,29 @@ from models.utils import (compute_pose_error, compute_epipolar_error,
 
 def ranking_score(matches, match_confidence):
     return np.sum(np.multiply(matches,match_confidence)).astype(np.float32)
+
+
+def plot_matches(args, match_map):
+    for query, result_set in match_map.items():
+        reference, percentage = result_set
+        if reference is None or percentage is None:
+            continue
+        query_filename = os.path.join(args.query_dir, f"{query}.jpg")
+        ref_filename = os.path.join(args.input_dir, f"{reference}.jpg")
+        query_image = cv2.cvtColor(cv2.imread(query_filename), cv2.COLOR_BGR2RGB)
+        ref_image = cv2.cvtColor(cv2.imread(ref_filename), cv2.COLOR_BGR2RGB)
+        fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+        axes[0].imshow(query_image)
+        axes[0].set_title(f"Q: {query}")
+        axes[0].axis('off')
+
+        axes[1].imshow(ref_image)
+        axes[1].set_title(f"R: {reference}, Match(%): {percentage}")
+        axes[1].axis('off')
+        output_file_name = os.path.join(args.output_dir, f"{query}_{reference}.jpg")
+        plt.savefig(output_file_name)
+
+
 
 class theMatcher:
     """
@@ -238,7 +262,7 @@ if __name__ == "__main__":
         '--max_length', type=int, default=-1,
         help='Maximum number of pairs to evaluate')
     parser.add_argument(
-        '--resize', type=int, nargs='+', default=[80, 60],
+        '--resize', type=int, nargs='+', default=[160, 120],
         help='Resize the input image before running inference. If two numbers, '
         'resize to the exact dimensions, if one number, resize the max '
         'dimension, if -1, do not resize')
@@ -318,4 +342,5 @@ if __name__ == "__main__":
             match_map[query_name] = (match, percentage)
 
     print(f"Matches found: {match_map}")
+    plot_matches(args, match_map)
 
